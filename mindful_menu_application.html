@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="dark h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>情緒天氣與能量點餐機 | Mindful Menu</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        slate: {
+                            850: '#111827',
+                            900: '#0F172A',
+                            950: '#020617',
+                        }
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float': 'float 3s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px)' },
+                            '50%': { transform: 'translateY(-8px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Font Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            user-select: none;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0F172A;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between overflow-x-hidden selection:bg-indigo-500 selection:text-white">
+
+    <!-- Header Section -->
+    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-40 px-4 py-3 sm:px-8">
+        <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+            
+            <!-- Logo & Title -->
+            <div class="flex items-center space-x-3 cursor-pointer group" onclick="switchMode('low-battery')">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-sky-400 flex items-center justify-center shadow-lg shadow-indigo-500/20 group-hover:scale-105 transition-transform duration-300">
+                    <i data-lucide="sparkles" class="w-5 h-5 text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg sm:text-xl font-bold bg-gradient-to-r from-slate-100 via-sky-200 to-indigo-300 bg-clip-text text-transparent">
+                        情緒天氣與能量點餐機
+                    </h1>
+                    <p class="text-xs text-slate-400 font-medium tracking-wide">MINDFUL MENU • HEALING LAB</p>
+                </div>
+            </div>
+
+            <!-- Ambient Sound Bar (Web Audio API procedural sound generators) -->
+            <div class="flex items-center bg-slate-800/90 border border-slate-700/60 rounded-2xl p-1.5 shadow-inner">
+                <span class="text-xs text-slate-400 px-2.5 font-medium flex items-center gap-1.5 hidden sm:flex">
+                    <i data-lucide="headphones" class="w-3.5 h-3.5 text-indigo-400"></i> 背景音效
+                </span>
+                <div class="flex items-center space-x-1">
+                    <button id="btn-sound-rain" onclick="toggleAmbient('rain')" class="sound-btn px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-700/50 transition-all">
+                        <span>🌧️</span> Rain
+                    </button>
+                    <button id="btn-sound-cafe" onclick="toggleAmbient('cafe')" class="sound-btn px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-700/50 transition-all">
+                        <span>☕</span> Cafe
+                    </button>
+                    <button id="btn-sound-mute" onclick="toggleAmbient('mute')" class="sound-btn px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5 bg-indigo-600/80 text-white shadow-sm transition-all">
+                        <span>🔕</span> Mute
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="max-w-5xl mx-auto px-4 py-6 sm:py-10 flex-1 flex flex-col justify-center items-center w-full">
+
+        <!-- Welcome Banner / Subtitle -->
+        <div class="text-center mb-8 max-w-lg">
+            <span class="inline-block px-3 py-1 mb-2 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
+                ✨ 專屬心靈補給站
+            </span>
+            <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-100 mb-2">今天想點哪一道能量特餐？</h2>
+            <p class="text-sm text-slate-400">點擊下方微醺選單，傾聽當前身心狀態，隨選即享專屬舒壓特餐。</p>
+        </div>
+
+        <!-- Mood Menu Selector Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 w-full max-w-3xl mb-10">
+            <!-- Card 1: Low Battery -->
+            <button id="card-low-battery" onclick="switchMode('low-battery')" 
+                    class="mood-card active group relative p-5 rounded-2xl bg-slate-800/60 border-2 border-sky-500/50 shadow-lg shadow-sky-500/10 hover:border-sky-400 hover:bg-slate-800 transition-all duration-300 text-left flex flex-col justify-between overflow-hidden">
+                <div class="absolute -right-4 -bottom-4 w-20 h-20 bg-sky-500/10 rounded-full blur-xl group-hover:bg-sky-500/20 transition-all"></div>
+                <div class="flex items-center justify-between mb-4">
+                    <span class="text-2xl p-2 rounded-xl bg-sky-500/10 border border-sky-500/20">🔋</span>
+                    <span class="text-xs font-mono font-semibold px-2 py-1 rounded bg-sky-500/20 text-sky-300">15%</span>
+                </div>
+                <div>
+                    <h3 class="font-bold text-slate-100 text-base group-hover:text-sky-300 transition-colors">低電量 15%</h3>
+                    <p class="text-xs text-slate-400 mt-1">極度疲憊，急需 4-7-8 深度呼吸引導</p>
+                </div>
+            </button>
+
+            <!-- Card 2: Brain Overload -->
+            <button id="card-brain-overload" onclick="switchMode('brain-overload')" 
+                    class="mood-card group relative p-5 rounded-2xl bg-slate-800/40 border-2 border-slate-700/60 hover:border-rose-500/50 hover:bg-slate-800 transition-all duration-300 text-left flex flex-col justify-between overflow-hidden">
+                <div class="absolute -right-4 -bottom-4 w-20 h-20 bg-rose-500/10 rounded-full blur-xl group-hover:bg-rose-500/20 transition-all"></div>
+                <div class="flex items-center justify-between mb-4">
+                    <span class="text-2xl p-2 rounded-xl bg-rose-500/10 border border-rose-500/20">💥</span>
+                    <span class="text-xs font-mono font-semibold px-2 py-1 rounded bg-rose-500/20 text-rose-300">HIGH</span>
+                </div>
+                <div>
+                    <h3 class="font-bold text-slate-100 text-base group-hover:text-rose-300 transition-colors">腦袋炸裂</h3>
+                    <p class="text-xs text-slate-400 mt-1">焦慮超載，按壓 4x4 氣泡紙宣洩壓力</p>
+                </div>
+            </button>
+
+            <!-- Card 3: Cat Healing -->
+            <button id="card-cat-healing" onclick="switchMode('cat-healing')" 
+                    class="mood-card group relative p-5 rounded-2xl bg-slate-800/40 border-2 border-slate-700/60 hover:border-amber-500/50 hover:bg-slate-800 transition-all duration-300 text-left flex flex-col justify-between overflow-hidden">
+                <div class="absolute -right-4 -bottom-4 w-20 h-20 bg-amber-500/10 rounded-full blur-xl group-hover:bg-amber-500/20 transition-all"></div>
+                <div class="flex items-center justify-between mb-4">
+                    <span class="text-2xl p-2 rounded-xl bg-amber-500/10 border border-amber-500/20">🐱</span>
+                    <span class="text-xs font-mono font-semibold px-2 py-1 rounded bg-amber-500/20 text-amber-300">PURR</span>
+                </div>
+                <div>
+                    <h3 class="font-bold text-slate-100 text-base group-hover:text-amber-300 transition-colors">急需吸貓</h3>
+                    <p class="text-xs text-slate-400 mt-1">互動靈動貓貓，獲取每日哲學金句</p>
+                </div>
+            </button>
+        </div>
+
+        <!-- Interactive Content Display Wrapper -->
+        <div id="content-container" class="w-full max-w-2xl bg-slate-800/30 border border-slate-700/50 rounded-3xl p-6 sm:p-10 shadow-2xl backdrop-blur-xl transition-all duration-500 relative min-h-[420px] flex flex-col items-center justify-center">
+
+            <!-- SECTION 1: Low Battery Mode (Breathing Circle) -->
+            <div id="sec-low-battery" class="mode-section flex flex-col items-center justify-center w-full my-auto text-center">
+                <div class="mb-6">
+                    <span class="text-xs uppercase tracking-widest text-sky-400 font-semibold">4-7-8 Deep Breathing</span>
+                    <h3 class="text-xl font-bold text-slate-200 mt-1">慢速復甦呼吸術</h3>
+                </div>
+
+                <!-- Breathing Circle Visualizer -->
+                <div class="relative w-64 h-64 sm:w-72 sm:h-72 flex items-center justify-center my-4">
+                    <!-- Outer Halo / Glow -->
+                    <div id="breath-halo" class="absolute inset-0 rounded-full bg-sky-500/20 blur-2xl transition-all duration-[1000ms]"></div>
+                    
+                    <!-- Expanding / Shrinking Circle -->
+                    <div id="breath-circle" class="w-36 h-36 sm:w-44 sm:h-44 rounded-full bg-gradient-to-tr from-sky-600 via-indigo-500 to-cyan-400 shadow-xl shadow-sky-500/30 flex flex-col items-center justify-center transition-all duration-[1000ms] ease-in-out relative z-10 border-4 border-sky-200/20">
+                        <span id="breath-timer" class="text-3xl sm:text-4xl font-extrabold text-white font-mono drop-shadow">4</span>
+                        <span id="breath-phase" class="text-xs sm:text-sm text-sky-100 font-medium tracking-wider mt-1 drop-shadow">吸氣 Inhale</span>
+                    </div>
+                </div>
+
+                <!-- Guidance message -->
+                <p id="breath-guide" class="text-slate-400 text-sm mt-4 max-w-sm h-10 flex items-center justify-center">
+                    請跟隨光圈脈動：吸氣 4 秒 → 停息 7 秒 → 吐氣 8 秒
+                </p>
+
+                <!-- Controls -->
+                <button onclick="toggleBreathing()" id="btn-breath-toggle" class="mt-4 px-6 py-2.5 rounded-full bg-sky-500 hover:bg-sky-400 text-slate-950 font-semibold text-sm transition-all shadow-lg shadow-sky-500/25 flex items-center gap-2">
+                    <i data-lucide="pause" class="w-4 h-4"></i> 暫停呼吸節奏
+                </button>
+            </div>
+
+            <!-- SECTION 2: Brain Overload Mode (Bubble Wrap Pop) -->
+            <div id="sec-brain-overload" class="mode-section hidden flex flex-col items-center justify-center w-full my-auto text-center">
+                <div class="mb-6">
+                    <span class="text-xs uppercase tracking-widest text-rose-400 font-semibold">Stress Relief Pop Grid</span>
+                    <h3 class="text-xl font-bold text-slate-200 mt-1">氣泡紙宣洩板</h3>
+                </div>
+
+                <!-- 4x4 Bubble Grid -->
+                <div id="bubble-grid" class="grid grid-cols-4 gap-3 sm:gap-4 max-w-xs sm:max-w-sm my-2 p-4 bg-slate-900/60 rounded-2xl border border-slate-700/80 shadow-inner">
+                    <!-- 16 Bubbles injected via JS -->
+                </div>
+
+                <!-- Status & Reset Button -->
+                <div class="mt-6 flex flex-col items-center min-h-[50px]">
+                    <p id="bubble-status" class="text-slate-400 text-sm font-medium">剩餘 <span id="popped-count" class="text-rose-400 font-bold">16</span> 個氣泡待壓碎</p>
+                    <button id="btn-reset-bubbles" onclick="resetBubbles()" class="hidden mt-2 px-6 py-2.5 rounded-full bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-400 hover:to-pink-400 text-white font-semibold text-sm transition-all shadow-lg shadow-rose-500/25 flex items-center gap-2">
+                        <i data-lucide="rotate-ccw" class="w-4 h-4"></i> 補充氣泡 Reset
+                    </button>
+                </div>
+            </div>
+
+            <!-- SECTION 3: Cat Healing Mode (Interactive Cat & Philosophy Quotes) -->
+            <div id="sec-cat-healing" class="mode-section hidden flex flex-col items-center justify-center w-full my-auto text-center relative">
+                <div class="mb-4">
+                    <span class="text-xs uppercase tracking-widest text-amber-400 font-semibold">Interactive Feline Therapy</span>
+                    <h3 class="text-xl font-bold text-slate-200 mt-1">吸貓養分特餐</h3>
+                </div>
+
+                <!-- SVG Cat Face Container -->
+                <div id="cat-area" onclick="petCat(event)" class="relative cursor-pointer group my-2 p-2 rounded-full hover:bg-amber-500/5 transition-colors">
+                    <!-- SVG Vector Cat -->
+                    <svg id="svg-cat" class="w-48 h-48 sm:w-56 sm:h-56 filter drop-shadow-xl transition-transform duration-200 group-hover:scale-105" viewBox="0 0 200 200">
+                        <!-- Ears -->
+                        <polygon points="40,70 20,20 70,40" fill="#F59E0B" />
+                        <polygon points="48,65 30,30 68,45" fill="#FCD34D" />
+                        <polygon points="160,70 180,20 130,40" fill="#F59E0B" />
+                        <polygon points="152,65 170,30 132,45" fill="#FCD34D" />
+                        
+                        <!-- Head -->
+                        <path d="M 35 110 C 35 55, 165 55, 165 110 C 165 165, 35 165, 35 110 Z" fill="#FBBF24" />
+                        
+                        <!-- Cheeks & Markings -->
+                        <path d="M 50 120 C 35 120, 35 100, 55 90" fill="#F59E0B" opacity="0.6" />
+                        <path d="M 150 120 C 165 120, 165 100, 145 90" fill="#F59E0B" opacity="0.6" />
+                        <path d="M 85 62 L 100 78 L 115 62" fill="none" stroke="#D97706" stroke-width="4" stroke-linecap="round" />
+
+                        <!-- Eye Sockets (White) -->
+                        <ellipse cx="70" cy="105" rx="18" ry="22" fill="#FFFFFF" />
+                        <ellipse cx="130" cy="105" rx="18" ry="22" fill="#FFFFFF" />
+
+                        <!-- Eye Pupils (Dynamic Tracking) -->
+                        <ellipse id="pupil-left" cx="70" cy="105" rx="9" ry="14" fill="#1E293B" />
+                        <ellipse id="pupil-right" cx="130" cy="105" rx="9" ry="14" fill="#1E293B" />
+
+                        <!-- Eye Highlights -->
+                        <circle cx="67" cy="98" r="3" fill="#FFFFFF" />
+                        <circle cx="127" cy="98" r="3" fill="#FFFFFF" />
+
+                        <!-- Nose -->
+                        <polygon points="95,118 105,118 100,125" fill="#F43F5E" />
+
+                        <!-- Mouth -->
+                        <path d="M 92 128 Q 100 134 100 128 Q 100 134 108 128" fill="none" stroke="#78350F" stroke-width="3" stroke-linecap="round" />
+
+                        <!-- Whiskers -->
+                        <line x1="25" y1="110" x2="55" y2="115" stroke="#78350F" stroke-width="2.5" stroke-linecap="round" />
+                        <line x1="20" y1="125" x2="52" y2="123" stroke="#78350F" stroke-width="2.5" stroke-linecap="round" />
+                        <line x1="175" y1="110" x2="145" y2="115" stroke="#78350F" stroke-width="2.5" stroke-linecap="round" />
+                        <line x1="180" y1="125" x2="148" y2="123" stroke="#78350F" stroke-width="2.5" stroke-linecap="round" />
+                    </svg>
+
+                    <!-- Floating Hearts Container -->
+                    <div id="hearts-container" class="absolute inset-0 pointer-events-none"></div>
+                </div>
+
+                <p class="text-xs text-amber-300/80 mb-4 font-medium flex items-center justify-center gap-1">
+                    <i data-lucide="hand-metal" class="w-3.5 h-3.5"></i> 點擊貓貓撫摸牠，聆聽咕嚕聲
+                </p>
+
+                <!-- Daily Cat Philosophy Card -->
+                <div class="w-full max-w-md bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 sm:p-5 relative">
+                    <span class="absolute -top-3 left-6 px-2.5 py-0.5 bg-amber-500 text-slate-950 font-bold text-[10px] rounded-full uppercase tracking-wider">
+                        今日貓咪哲學
+                    </span>
+                    <p id="cat-quote" class="text-amber-100 text-sm sm:text-base font-medium leading-relaxed italic mt-1">
+                        「貓咪從不為明天憂慮，你也可以。」
+                    </p>
+                    <button onclick="nextCatQuote()" class="mt-3 text-xs text-amber-400 hover:text-amber-300 font-semibold underline underline-offset-4 transition-colors">
+                        換一張哲學金句 🐾
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Footer Section -->
+    <footer class="border-t border-slate-800/80 bg-slate-950/50 py-4 px-4 text-center text-xs text-slate-500">
+        <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+            <p>情緒天氣與能量點餐機 © Mindful Menu • Built with Pure JS & Web Audio API</p>
+            <p class="text-slate-600">讓當下的感受被溫柔對待 ✨</p>
+        </div>
+    </footer>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // --- Web Audio API Procedural Sound Engine ---
+        let audioCtx = null;
+        let ambientSourceNode = null;
+        let ambientGainNode = null;
+        let currentAmbient = 'mute';
+
+        function initAudioContext() {
+            if (!audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContext();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        // Procedural Ambient Sound Generators (No external audio file dependencies)
+        function toggleAmbient(type) {
+            initAudioContext();
+            
+            // UI Button states
+            document.querySelectorAll('.sound-btn').forEach(btn => {
+                btn.className = "sound-btn px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-700/50 transition-all";
+            });
+
+            const activeBtn = document.getElementById(`btn-sound-${type}`);
+            if (activeBtn) {
+                activeBtn.className = "sound-btn px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5 bg-indigo-600 text-white shadow-md transition-all";
+            }
+
+            if (currentAmbient === type && type !== 'mute') {
+                type = 'mute'; // Toggle off
+            }
+
+            // Stop previous noise source
+            if (ambientSourceNode) {
+                try { ambientSourceNode.stop(); } catch(e){}
+                ambientSourceNode.disconnect();
+                ambientSourceNode = null;
+            }
+
+            currentAmbient = type;
+
+            if (type === 'mute') return;
+
+            // Create procedural white/pink noise buffer
+            const bufferSize = audioCtx.sampleRate * 3; // 3 second buffer loop
+            const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const output = noiseBuffer.getChannelData(0);
+
+            if (type === 'rain') {
+                // Pink noise filter algorithm for steady relaxing rain
+                let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+                for (let i = 0; i < bufferSize; i++) {
+                    let white = Math.random() * 2 - 1;
+                    b0 = 0.99886 * b0 + white * 0.0555179;
+                    b1 = 0.99332 * b1 + white * 0.0750759;
+                    b2 = 0.96900 * b2 + white * 0.1538520;
+                    b3 = 0.86650 * b3 + white * 0.3104856;
+                    b4 = 0.55000 * b4 + white * 0.5329522;
+                    b5 = -0.7616 * b5 - white * 0.0168980;
+                    output[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.04;
+                    b6 = white * 0.115926;
+                }
+            } else if (type === 'cafe') {
+                // Low rumble brownian noise for cozy cafe ambient hum
+                let lastOut = 0.0;
+                for (let i = 0; i < bufferSize; i++) {
+                    let white = Math.random() * 2 - 1;
+                    output[i] = (lastOut + (0.02 * white)) / 1.02;
+                    lastOut = output[i];
+                    output[i] *= 0.15;
+                }
+            }
+
+            ambientSourceNode = audioCtx.createBufferSource();
+            ambientSourceNode.buffer = noiseBuffer;
+            ambientSourceNode.loop = true;
+
+            // Lowpass filter to make it soft and soothing
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.value = type === 'rain' ? 1200 : 600;
+
+            ambientGainNode = audioCtx.createGain();
+            ambientGainNode.gain.value = 0.25;
+
+            ambientSourceNode.connect(filter);
+            filter.connect(ambientGainNode);
+            ambientGainNode.connect(audioCtx.destination);
+
+            ambientSourceNode.start();
+        }
+
+        // Sound FX: Bubble Pop Synthesis
+        function playPopSound() {
+            initAudioContext();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+
+            osc.type = 'sine';
+            // Quick downward pitch sweep simulating bubble pop
+            osc.frequency.setValueAtTime(600 + Math.random() * 200, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(120, audioCtx.currentTime + 0.08);
+
+            gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.09);
+        }
+
+        // Sound FX: Cat Purr / Meow Synthesis
+        function playPurrSound() {
+            initAudioContext();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+
+            osc.type = 'triangle';
+            // Low rumble purr frequency oscillation
+            osc.frequency.setValueAtTime(70, audioCtx.currentTime);
+            osc.frequency.linearRampToValueAtTime(80, audioCtx.currentTime + 0.2);
+            osc.frequency.linearRampToValueAtTime(65, audioCtx.currentTime + 0.5);
+
+            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.5);
+        }
+
+
+        // --- Application State Management ---
+        let currentMode = 'low-battery';
+
+        function switchMode(mode) {
+            currentMode = mode;
+            initAudioContext();
+
+            // Update Cards UI
+            document.querySelectorAll('.mood-card').forEach(card => {
+                card.classList.remove('active', 'border-sky-500/50', 'border-rose-500/50', 'border-amber-500/50', 'bg-slate-800');
+                card.classList.add('border-slate-700/60', 'bg-slate-800/40');
+            });
+
+            const activeCard = document.getElementById(`card-${mode}`);
+            activeCard.classList.remove('border-slate-700/60', 'bg-slate-800/40');
+            activeCard.classList.add('active', 'bg-slate-800');
+
+            if (mode === 'low-battery') activeCard.classList.add('border-sky-500/50');
+            if (mode === 'brain-overload') activeCard.classList.add('border-rose-500/50');
+            if (mode === 'cat-healing') activeCard.classList.add('border-amber-500/50');
+
+            // Switch Sections
+            document.querySelectorAll('.mode-section').forEach(sec => sec.classList.add('hidden'));
+            document.getElementById(`sec-${mode}`).classList.remove('hidden');
+
+            // Mode initializations
+            if (mode === 'low-battery') {
+                startBreathing();
+            } else {
+                stopBreathing();
+            }
+        }
+
+
+        // --- SECTION 1: 4-7-8 Breathing Timer Logic ---
+        let breathInterval = null;
+        let isBreathingRunning = false;
+        let breathPhaseTime = 0; // Cumulative phase seconds
+
+        function startBreathing() {
+            if (isBreathingRunning) return;
+            isBreathingRunning = true;
+            document.getElementById('btn-breath-toggle').innerHTML = `<i data-lucide="pause" class="w-4 h-4"></i> 暫停呼吸節奏`;
+            lucide.createIcons();
+            runBreathCycle();
+        }
+
+        function stopBreathing() {
+            isBreathingRunning = false;
+            clearTimeout(breathInterval);
+            const btn = document.getElementById('btn-breath-toggle');
+            if (btn) {
+                btn.innerHTML = `<i data-lucide="play" class="w-4 h-4"></i> 啟動呼吸節奏`;
+                lucide.createIcons();
+            }
+        }
+
+        function toggleBreathing() {
+            if (isBreathingRunning) {
+                stopBreathing();
+            } else {
+                startBreathing();
+            }
+        }
+
+        function runBreathCycle() {
+            if (!isBreathingRunning) return;
+
+            const circle = document.getElementById('breath-circle');
+            const halo = document.getElementById('breath-halo');
+            const timerEl = document.getElementById('breath-timer');
+            const phaseEl = document.getElementById('breath-phase');
+            const guideEl = document.getElementById('breath-guide');
+
+            // Phase 1: Inhale 4s
+            phaseEl.innerText = "吸氣 Inhale";
+            guideEl.innerText = "深深地吸氣，感受能量緩緩注入心田...";
+            circle.style.transform = "scale(1.35)";
+            halo.style.opacity = "1";
+            
+            let seconds = 4;
+            timerEl.innerText = seconds;
+
+            let inhaleInterval = setInterval(() => {
+                seconds--;
+                if (seconds > 0) {
+                    timerEl.innerText = seconds;
+                } else {
+                    clearInterval(inhaleInterval);
+                    if (!isBreathingRunning) return;
+
+                    // Phase 2: Hold 7s
+                    phaseEl.innerText = "留氣 Hold";
+                    guideEl.innerText = "平靜地停息，讓專注與安定沉澱下來...";
+                    circle.style.transform = "scale(1.35)"; // keep expanded
+                    halo.style.opacity = "0.7";
+
+                    let holdSeconds = 7;
+                    timerEl.innerText = holdSeconds;
+
+                    let holdInterval = setInterval(() => {
+                        holdSeconds--;
+                        if (holdSeconds > 0) {
+                            timerEl.innerText = holdSeconds;
+                        } else {
+                            clearInterval(holdInterval);
+                            if (!isBreathingRunning) return;
+
+                            // Phase 3: Exhale 8s
+                            phaseEl.innerText = "吐氣 Exhale";
+                            guideEl.innerText = "緩緩地吐氣，將所有緊繃與煩惱釋放...";
+                            circle.style.transform = "scale(0.85)";
+                            halo.style.opacity = "0.2";
+
+                            let exhaleSeconds = 8;
+                            timerEl.innerText = exhaleSeconds;
+
+                            let exhaleInterval = setInterval(() => {
+                                exhaleSeconds--;
+                                if (exhaleSeconds > 0) {
+                                    timerEl.innerText = exhaleSeconds;
+                                } else {
+                                    clearInterval(exhaleInterval);
+                                    if (isBreathingRunning) {
+                                        runBreathCycle(); // Loop
+                                    }
+                                }
+                            }, 1000);
+                        }
+                    }, 1000);
+                }
+            }, 1000);
+        }
+
+
+        // --- SECTION 2: 4x4 Stress Relief Bubble Wrap Grid ---
+        const totalBubbles = 16;
+        let poppedBubbles = 0;
+
+        function initBubbleGrid() {
+            const grid = document.getElementById('bubble-grid');
+            grid.innerHTML = '';
+            poppedBubbles = 0;
+            document.getElementById('popped-count').innerText = totalBubbles - poppedBubbles;
+            document.getElementById('btn-reset-bubbles').classList.add('hidden');
+            document.getElementById('bubble-status').innerHTML = `剩餘 <span id="popped-count" class="text-rose-400 font-bold">${totalBubbles}</span> 個氣泡待壓碎`;
+
+            for (let i = 0; i < totalBubbles; i++) {
+                const bubble = document.createElement('button');
+                bubble.className = "bubble-btn w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-gradient-to-tr from-rose-500/80 to-pink-400/90 border-2 border-rose-300/40 shadow-lg shadow-rose-500/20 active:scale-95 transition-all duration-150 flex items-center justify-center relative overflow-hidden";
+                bubble.setAttribute('onclick', `popBubble(this)`);
+                
+                // Bubble shine accent
+                const shine = document.createElement('span');
+                shine.className = "absolute top-1.5 left-2 w-3 h-2 bg-white/40 rounded-full blur-[0.5px]";
+                bubble.appendChild(shine);
+
+                grid.appendChild(bubble);
+            }
+        }
+
+        function popBubble(btn) {
+            if (btn.classList.contains('popped')) return;
+
+            btn.classList.add('popped');
+            playPopSound();
+
+            // Visual popped state
+            btn.className = "w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-slate-800/80 border border-slate-700 shadow-inner flex items-center justify-center transition-all duration-200 scale-90 opacity-60";
+            btn.innerHTML = `<span class="w-3 h-3 rounded-full bg-rose-500/30"></span>`;
+
+            // Particle Pop Burst Effect
+            createParticlePop(btn);
+
+            poppedBubbles++;
+            const remaining = totalBubbles - poppedBubbles;
+            document.getElementById('popped-count').innerText = remaining;
+
+            if (poppedBubbles === totalBubbles) {
+                document.getElementById('bubble-status').innerHTML = `<span class="text-emerald-400 font-bold text-base">🎉 腦袋已成功重置！焦慮清零 ✨</span>`;
+                document.getElementById('btn-reset-bubbles').classList.remove('hidden');
+            }
+        }
+
+        function createParticlePop(element) {
+            const rect = element.getBoundingClientRect();
+
+            for (let i = 0; i < 6; i++) {
+                const particle = document.createElement('div');
+                particle.className = "fixed w-2 h-2 rounded-full bg-rose-400 pointer-events-none z-50";
+                
+                const startX = rect.left + rect.width / 2;
+                const startY = rect.top + rect.height / 2;
+                
+                particle.style.left = `${startX}px`;
+                particle.style.top = `${startY}px`;
+
+                document.body.appendChild(particle);
+
+                const angle = Math.random() * Math.PI * 2;
+                const distance = 20 + Math.random() * 30;
+                const destinationX = Math.cos(angle) * distance;
+                const destinationY = Math.sin(angle) * distance;
+
+                particle.animate([
+                    { transform: 'translate(0, 0) scale(1)', opacity: 1 },
+                    { transform: `translate(${destinationX}px, ${destinationY}px) scale(0)`, opacity: 0 }
+                ], {
+                    duration: 400 + Math.random() * 200,
+                    easing: 'cubic-bezier(0, .9, .57, 1)',
+                    fill: 'forwards'
+                }).onfinish = () => particle.remove();
+            }
+        }
+
+        function resetBubbles() {
+            initBubbleGrid();
+        }
+
+
+        // --- SECTION 3: Interactive Cat & Quotes ---
+        const catQuotes = [
+            "「貓咪從不為明天憂慮，你也可以。」",
+            "「慢慢來，曬個太陽也是很棒的進度。」",
+            "「如果事情太複雜，先趴下來睡個午覺吧。」",
+            "「真正的優雅，是在混亂中保持隨性與平靜。」",
+            "「允許自己偶爾伸個懶腰，什麼事都不做。」",
+            "「喵～ 你的努力我都看在眼裡，已經很棒了。」",
+            "「伸展一下爪子，把緊繃的壓力統通推倒吧。」"
+        ];
+        let currentQuoteIdx = 0;
+
+        function nextCatQuote() {
+            currentQuoteIdx = (currentQuoteIdx + 1) % catQuotes.length;
+            const quoteEl = document.getElementById('cat-quote');
+            quoteEl.style.opacity = '0';
+            setTimeout(() => {
+                quoteEl.innerText = catQuotes[currentQuoteIdx];
+                quoteEl.style.opacity = '1';
+            }, 200);
+        }
+
+        // Mouse-tracking Cat Eye Pupils
+        document.addEventListener('mousemove', (e) => {
+            if (currentMode !== 'cat-healing') return;
+
+            const pupilLeft = document.getElementById('pupil-left');
+            const pupilRight = document.getElementById('pupil-right');
+            const svgCat = document.getElementById('svg-cat');
+
+            if (!pupilLeft || !pupilRight || !svgCat) return;
+
+            const rect = svgCat.getBoundingClientRect();
+            const catCenterX = rect.left + rect.width / 2;
+            const catCenterY = rect.top + rect.height / 2;
+
+            const deltaX = e.clientX - catCenterX;
+            const deltaY = e.clientY - catCenterY;
+            const angle = Math.atan2(deltaY, deltaX);
+
+            const distance = Math.min(6, Math.hypot(deltaX, deltaY) / 25);
+
+            const moveX = Math.cos(angle) * distance;
+            const moveY = Math.sin(angle) * distance;
+
+            pupilLeft.setAttribute('cx', 70 + moveX);
+            pupilLeft.setAttribute('cy', 105 + moveY);
+
+            pupilRight.setAttribute('cx', 130 + moveX);
+            pupilRight.setAttribute('cy', 105 + moveY);
+        });
+
+        // Petting Cat Interaction (Hearts & Purr)
+        function petCat(e) {
+            playPurrSound();
+
+            const catArea = document.getElementById('cat-area');
+            const rect = catArea.getBoundingClientRect();
+            
+            // Generate floating heart
+            const heart = document.createElement('div');
+            heart.innerText = ['❤️', '💖', '🐾', '✨'][Math.floor(Math.random() * 4)];
+            heart.className = "absolute text-2xl pointer-events-none z-30 select-none";
+            
+            const clickX = e.clientX - rect.left;
+            const clickY = e.clientY - rect.top;
+
+            heart.style.left = `${clickX}px`;
+            heart.style.top = `${clickY}px`;
+
+            document.getElementById('hearts-container').appendChild(heart);
+
+            heart.animate([
+                { transform: 'translate(-50%, -50%) scale(0.5)', opacity: 1 },
+                { transform: `translate(-50%, -80px) scale(1.4)`, opacity: 0 }
+            ], {
+                duration: 1000,
+                easing: 'ease-out',
+                fill: 'forwards'
+            }).onfinish = () => heart.remove();
+        }
+
+
+        // --- Page Load Initialization ---
+        window.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            initBubbleGrid();
+            switchMode('low-battery');
+        });
+    </script>
+</body>
+</html>
